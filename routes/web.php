@@ -21,14 +21,14 @@ use App\Http\Controllers\LocationController;
 
 Route::get('/', [HomeController::class, 'index']);
 
-Route::get('/get-data', [HomeController::class, 'getData']);
+// Route::get('/get-data', [HomeController::class, 'getData']);
 
-// Route::post('/fg-list',[FGListController::class, 'index']);
-Route::post('/fg-list',[FGListController::class, 'index'])->name('list.check');
+// // Route::post('/fg-list',[FGListController::class, 'index']);
+// Route::post('/fg-list',[FGListController::class, 'index'])->name('list.check');
 
-Route::get('/location',[LocationController::class, 'index']);
+// Route::get('/location',[LocationController::class, 'index']);
 
-Route::post('/location-store',[LocationController::class, 'storeData']);
+// Route::post('/location-store',[LocationController::class, 'storeData']);
 
-Route::post('/delete', [LocationController::class, 'delete']);
+// Route::post('/delete', [LocationController::class, 'delete']);
 
