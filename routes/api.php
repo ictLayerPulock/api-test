@@ -35,9 +35,9 @@ Route::get('/location',[LocationController::class, 'index']);
 Route::post('/location-store',[LocationController::class, 'storeData'])->name('store');
 
 
-// Route::post('/location-update',[LocationController::class, 'update'])->name('update');
+Route::post('/location-update',[LocationController::class, 'update'])->name('update');
 
 
-Route::get('/location-update-data',[LocationController::class, 'newUpdate'])->name('update');
+Route::get('/location-update-data',[LocationController::class, 'newUpdate']);
 
 Route::post('/delete', [LocationController::class, 'delete'])->name('delete');

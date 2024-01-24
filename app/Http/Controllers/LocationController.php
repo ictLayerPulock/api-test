@@ -201,22 +201,24 @@ class LocationController extends Controller
 
  //  Update Function
     public function update(Request $request){
-        // $data = $request->all();
-        // dd($data);
-        // return  response()->json($data);
 
         $record = DB::table('location')->where('location_id', $request->location_id)->first();
         if (!$record) {
             return response()->json([
                 'status' => 404,
-                'message' => 'Record not found',
+                'message' => 'location_id Record not found',
             ]);
         }
 
-         // check child location
-         $checkLocation = $this->getChain($request->location_id); 
+        $parent = DB::table('location')->where('location_parent_id', $request->location_parent_id)->first();
+        if (!$parent) {
+            return response()->json([
+                'status' => 404,
+                'message' => 'parent id Record not found',
+            ]);
+        }
 
-        if(!(count($checkLocation) === 0)){
+   
         DB::table('location')
         ->where('location_id', $request->location_id)
         ->update([
@@ -229,14 +231,8 @@ class LocationController extends Controller
             'location_preorder_delivery_days'   => $request->location_preorder_delivery_days,
             'location_status'                   => $request->location_status,
         ]);
-        }else{
-        return response()->json([
-            'status' => 200,
-            'message' => 'Record can not Update ! , This location has a child location',
-        ]);
-        } 
 
-    
+  
         return response()->json([
             'status' => 200,
             'message' => 'Record updated successfully',
@@ -250,6 +246,13 @@ class LocationController extends Controller
 
     public function newUpdate(Request $request){
 
+
+        return response()->json('some');
+
+
+        $checkParent = $this->getParent();
+        return response()->json($checkParent);
+
         $record = DB::table('location')->where('location_id', $request->location_id)->first();
         if ($record) {
                 return response()->json([
@@ -258,8 +261,10 @@ class LocationController extends Controller
                 ]);
         }
 
+        
+
         // Check Parent Id
-        $checkParent = $this->getParent($request->locaton_parent_id);
+        // $checkParent = $this->getParent($request->locaton_parent_id);
 
         // return response()->json($checkParent);
 
@@ -295,7 +300,8 @@ class LocationController extends Controller
         
     }
 
-    protected function getParent($parentId = 0){
+    private function getParent($parentId = 17)
+    {
         $resultData = [];
 
         $resultArray = DB::table('location')
@@ -319,17 +325,10 @@ class LocationController extends Controller
 
             $resultData = array_merge($resultData, $this->getChain($result->id));
         }
+
+        return $resultData;
     }
 
-
-    protected function getChild($childId = 0){
-        $result = DB::table('location')
-        ->select('location_id as id', 'location_name as label', 'location_parant_id')
-        ->where('location_id', $childId)
-        ->first();
-
-       return $result;
-    }
 
 
 
