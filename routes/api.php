@@ -2,8 +2,9 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\FGListController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\FGListController;
+use App\Http\Controllers\LocationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -22,4 +23,21 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 
 
-// Route::get('/fg-list',[FGListController::class, 'index']);
+Route::get('/', [HomeController::class, 'index']);
+
+Route::get('/get-data', [HomeController::class, 'getData']);
+
+// Route::post('/fg-list',[FGListController::class, 'index']);
+Route::post('/fg-list',[FGListController::class, 'index'])->name('list.check');
+
+Route::get('/location',[LocationController::class, 'index']);
+
+Route::post('/location-store',[LocationController::class, 'storeData'])->name('store');
+
+
+// Route::post('/location-update',[LocationController::class, 'update'])->name('update');
+
+
+Route::get('/location-update-data',[LocationController::class, 'newUpdate'])->name('update');
+
+Route::post('/delete', [LocationController::class, 'delete'])->name('delete');

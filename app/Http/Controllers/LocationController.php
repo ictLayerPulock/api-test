@@ -63,12 +63,14 @@ class LocationController extends Controller
 
         return $resultData;
     }
-// For get all data
+    // For get all data
     public function index()
     {
         $locations = DB::table('location')->select('*')->where('location_status', 'active')->orderBy('location_id', 'ASC')->get();
-
+        
         $finalLocation = $this->getChain();
+
+      
 
         foreach ($finalLocation as $key => $value) {
             $parentChildIds = $this->getLocationChildIds($value['id']);
@@ -136,7 +138,7 @@ class LocationController extends Controller
             'location_status'                   => $request->location_status,
         ];
 
-
+        
         $inserted = DB::table('location')->insert($data);
         
         if ($inserted) {
@@ -155,36 +157,180 @@ class LocationController extends Controller
 
 //  For Delete
 
-public function delete(Request $request){
-    // $data = $request->id;
-    // return  response()->json($data);
+    public function delete(Request $request){
+        // $data = $request->id;
+        // return  response()->json($data);
 
-    $record = DB::table('location')->where('location_id', $request->id)->first();
+        $record = DB::table('location')->where('location_id', $request->id)->first();
+            if (!$record) {
+                    return response()->json([
+                        'status' => 404,
+                        'message' => 'Record not found',
+                    ]);
+                }
 
-    if (!$record) {
-        return response()->json([
-            'status' => 404,
-            'message' => 'Record not found',
-        ]);
+            // check child location
+            $checkLocation = $this->getChain($request->id); 
+
+            if(!(count($checkLocation) === 0)){
+                // Perform the deletion using Query Builder
+                $deleted = DB::table('location')
+                            ->where('location_id', $request->id)
+                            ->delete();
+
+                if ($deleted) {
+                    return response()->json([
+                        'status' => 200,
+                        'message' => 'Record deleted successfully',
+                    ]);
+                } else {
+                    return response()->json([
+                        'status' => 500,
+                        'message' => 'Failed to delete record',
+                    ]);
+                }
+            }  
+            else{
+                return response()->json([
+                    'status' => 200,
+                    'message' => 'Record can not delete , This location has a child location',
+                ]);
+            } 
+
     }
 
-    // Perform the deletion using Query Builder
-    $deleted = DB::table('location')
-                ->where('location_id', $request->id)
-                ->delete();
+ //  Update Function
+    public function update(Request $request){
+        // $data = $request->all();
+        // dd($data);
+        // return  response()->json($data);
 
-    if ($deleted) {
+        $record = DB::table('location')->where('location_id', $request->location_id)->first();
+        if (!$record) {
+            return response()->json([
+                'status' => 404,
+                'message' => 'Record not found',
+            ]);
+        }
+
+         // check child location
+         $checkLocation = $this->getChain($request->location_id); 
+
+        if(!(count($checkLocation) === 0)){
+        DB::table('location')
+        ->where('location_id', $request->location_id)
+        ->update([
+            'location_name'                     => $request->location_name,
+            'location_parent_id'                => $request->location_parent_id,
+            'location_regular_fee'              => $request->location_regular_fee,
+            'location_regular_delivery_days'    => $request->location_regular_delivery_days,
+            'location_express_fee'              => $request->location_express_fee,
+            'location_express_delivery_hours'   => $request->location_express_delivery_hours,
+            'location_preorder_delivery_days'   => $request->location_preorder_delivery_days,
+            'location_status'                   => $request->location_status,
+        ]);
+        }else{
         return response()->json([
             'status' => 200,
-            'message' => 'Record deleted successfully',
+            'message' => 'Record can not Update ! , This location has a child location',
         ]);
-    } else {
+        } 
+
+    
         return response()->json([
-            'status' => 500,
-            'message' => 'Failed to delete record',
+            'status' => 200,
+            'message' => 'Record updated successfully',
+            'data' => $record,
         ]);
+
     }
-}
+
+
+ // New Update Function
+
+    public function newUpdate(Request $request){
+
+        $record = DB::table('location')->where('location_id', $request->location_id)->first();
+        if ($record) {
+                return response()->json([
+                    'status' => 404,
+                    'message' => 'Record not found',
+                ]);
+        }
+
+        // Check Parent Id
+        $checkParent = $this->getParent($request->locaton_parent_id);
+
+        // return response()->json($checkParent);
+
+        // Check Child Id
+        $checkChild = $this->getChild($request->child_id);
+
+        
+   
+
+        // Update the location's parent_location_id
+        DB::table('location')
+            ->where('location_id',$request->location_id)
+            ->update(['parent_location_id' => $request->parent_location_id]);
+
+        // Update child locations recursively
+        $this->updateChildLocations($request->locationId, $request->childLocationId);
+    }
+
+    protected function updateChildLocations($oldParentId, $newParentId)
+    {
+        // Find child locations of the old parent
+        $childLocations = DB::table('location')
+            ->where('parent_location_id', $oldParentId)
+            ->get();
+
+        // Update each child location and call the function recursively
+        foreach ($childLocations as $childLocation) {
+            $this->updateChildLocations($request->location_id, $childLocation->location_id);
+            DB::table('location')
+                ->where('location_id', $request->location_id)
+                ->update(['parent_location_id' => $newParentId]);
+        }
+        
+    }
+
+    protected function getParent($parentId = 0){
+        $resultData = [];
+
+        $resultArray = DB::table('location')
+            ->select('location_id as id', 'location_name as label', 'location_parent_id', 'location_regular_fee', 'location_express_fee', 'location_regular_delivery_days', 'location_express_delivery_hours', 'location_preorder_delivery_days')
+            ->where('location_parent_id', $parentId)
+            ->where('location_status', 'active')
+            ->get();
+
+        foreach ($resultArray as $result) {
+            $resultData[] = [
+                'id' => $result->id,
+                'chain' => $this->getPath($result->id),
+                'label' => $result->label,
+                'location_parent_id' => $result->location_parent_id,
+                'regular_fee' => $result->location_regular_fee,
+                'express_fee' => $result->location_express_fee,
+                'location_regular_delivery_days' => $result->location_regular_delivery_days,
+                'location_express_delivery_hours' => $result->location_express_delivery_hours,
+                'location_preorder_delivery_days' => $result->location_preorder_delivery_days,
+            ];
+
+            $resultData = array_merge($resultData, $this->getChain($result->id));
+        }
+    }
+
+
+    protected function getChild($childId = 0){
+        $result = DB::table('location')
+        ->select('location_id as id', 'location_name as label', 'location_parant_id')
+        ->where('location_id', $childId)
+        ->first();
+
+       return $result;
+    }
+
 
 
 }
